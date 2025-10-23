@@ -23,12 +23,12 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className={`${geist.variable}`}>
-        <body className="bg-gray-100">
+        <body className="bg-gray-100" suppressHydrationWarning={true}>
           {/* Top Navigation Bar */}
           <TopNav />
 
           {/* Page Content */}
-          <main className="p-6">{children}</main>
+          <main className="p-6 pt-24">{children}</main>
         </body>
       </html>
     </ClerkProvider>

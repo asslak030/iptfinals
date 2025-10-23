@@ -3,7 +3,8 @@
 import {
   SignedIn,
   SignedOut,
-  SignInButton,
+  useUser,
+  useClerk,
 } from "@clerk/nextjs";
 import Link from "next/link";
 import Image from "next/image";
@@ -13,8 +14,20 @@ import {
   CarouselItem,
 } from "~/components/ui/carousel";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { isSignedIn } = useUser();
+  const { openSignIn } = useClerk();
+
+  // Redirect to dashboard if signed in
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [isSignedIn, router]);
+
   // modal state (works site-wide)
   const [selectedGameModal, setSelectedGameModal] = useState<null | {
     title: string;
@@ -44,6 +57,7 @@ export default function HomePage() {
     } catch (e) {}
   }, [wishlist]);
 
+  
   // master games array with ALL games including descriptions and shop links
   const allGames = [
     { src: "/games/atomic_heart.jpg", title: "Atomic Heart", category: "Shooter", price: "₱2,322.00", description: "A first-person shooter set in an alternate 1950s Soviet Union, where you navigate a facility overrun by robotic enemies and conspiracies. It combines combat, exploration, and puzzle-solving in a retro-futuristic dystopian world.", shopLink: "https://www.xbox.com/en-US/games/store/atomic-heart/9p731z4bbct3/" },
@@ -151,8 +165,7 @@ export default function HomePage() {
     { src: "/games/until_down.jpg", title: "Until Dawn", category: "Interactive Horror", price: "₱1,160.00", description: "An interactive horror game where choices determine the fate of teenagers in a remote lodge, with branching narratives and quick-time events. It emphasizes tension and moral decisions in a realistic thriller setting.", shopLink: "https://www.playstation.com/en-us/games/until-dawn/" },
     { src: "/games/tales.jpg", title: "Tales from the Borderlands", category: "Interactive Story", price: "₱1,160.00", description: "An episodic interactive story where you make choices as con artists in a sci-fi world, blending humor and action. It focuses on narrative branches and dialogue in a realistic, adventurous setting.", shopLink: "https://www.nintendo.com/store/products/tales-from-the-borderlands-switch/" },
     { src: "/games/lostark.jpg", title: "Lost Ark", category: "MMO Action", price: "₱580.00", description: "An MMO action game with fast-paced combat, exploration, and raids in a fantasy world. It emphasizes skill-based fights, quests, and social features in a dynamic, realistic environment.", shopLink: "https://store.steampowered.com/app/1599340/Lost_Ark/" },
-]; 
-
+  ]; 
 
   // Featured games for carousel (first 12 games)
   const featuredGames = allGames.slice(0, 12);
@@ -243,6 +256,25 @@ export default function HomePage() {
     { src: "/games/gta.jpg", title: "Grand Theft Auto: V", price: "₱1,499" },
     { src: "/games/sonic.jpg", title: "Sonic Racing", price: "₱1,099" },
   ];
+
+  // Custom sign in handler
+  const handleSignIn = () => {
+    openSignIn({
+      redirectUrl: "/dashboard"
+    });
+  };
+
+  // If user is signed in, show loading state while redirecting
+  if (isSignedIn) {
+    return (
+      <main className="bg-[#1b2838] text-white min-h-screen w-full px-6 py-12 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold mb-4">Redirecting to Dashboard...</h1>
+          <p className="text-gray-300">Please wait while we take you to your personalized dashboard.</p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="bg-[#1b2838] text-white min-h-screen w-full px-6 py-12">
@@ -610,11 +642,13 @@ export default function HomePage() {
           <p className="text-lg md:text-xl font-semibold text-white mb-6">
             Sign in to view personalized picks
           </p>
-          <SignInButton mode="modal">
-            <button className="px-6 py-2 rounded-full bg-[#1b9aaa] text-white font-medium hover:bg-[#14828a] transition shadow-sm">
-              Sign In
-            </button>
-          </SignInButton>
+          {/* Custom sign in button without SignInButton component */}
+          <button 
+            onClick={handleSignIn}
+            className="px-6 py-2 rounded-full bg-[#1b9aaa] text-white font-medium hover:bg-[#14828a] transition shadow-sm cursor-pointer"
+          >
+            Sign In
+          </button>
           <p className="mt-4 text-sm text-gray-400"></p>
         </footer>
 
