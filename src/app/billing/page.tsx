@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { ArrowLeft, CreditCard, Shield, CheckCircle } from "lucide-react";
 
@@ -12,7 +12,8 @@ interface BillingData {
   imageUrl: string;
 }
 
-export default function BillingPage() {
+// Create a separate component that uses useSearchParams
+function BillingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [billingData, setBillingData] = useState<BillingData | null>(null);
@@ -426,5 +427,23 @@ export default function BillingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Main page component with Suspense boundary
+export default function BillingPage() {
+  return (
+    <Suspense 
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+            <p>Loading billing page...</p>
+          </div>
+        </div>
+      }
+    >
+      <BillingContent />
+    </Suspense>
   );
 }
