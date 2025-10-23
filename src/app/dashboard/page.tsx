@@ -57,7 +57,23 @@ export default function DashboardPage() {
     fetchGames();
   }, []);
 
-  // === Handle search ===
+  // === Real-time search filtering ===
+  useEffect(() => {
+    if (!keyword.trim()) {
+      setFilteredGames(games);
+      return;
+    }
+
+    const filtered = games.filter(game =>
+      game.gameName?.toLowerCase().includes(keyword.toLowerCase()) ||
+      game.category?.toLowerCase().includes(keyword.toLowerCase()) ||
+      game.description?.toLowerCase().includes(keyword.toLowerCase()) ||
+      game.platform?.toLowerCase().includes(keyword.toLowerCase())
+    );
+    setFilteredGames(filtered);
+  }, [keyword, games]);
+
+  // === Handle search form submission ===
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!keyword.trim()) {
@@ -67,18 +83,53 @@ export default function DashboardPage() {
 
     setSearching(true);
     try {
+      // Option 1: Use client-side filtering (faster, no API call)
+      const filtered = games.filter(game =>
+        game.gameName?.toLowerCase().includes(keyword.toLowerCase()) ||
+        game.category?.toLowerCase().includes(keyword.toLowerCase()) ||
+        game.description?.toLowerCase().includes(keyword.toLowerCase()) ||
+        game.platform?.toLowerCase().includes(keyword.toLowerCase())
+      );
+      setFilteredGames(filtered);
+      
+      // Option 2: Use server-side search (uncomment if you want API search)
+      /*
       const res = await fetch("/api/games", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ keyword }),
+        body: JSON.stringify({ 
+          postBody: keyword,
+          action: "search_gameitems" 
+        }),
       });
 
       if (!res.ok) throw new Error("Search failed");
-      const data = await res.json();
-      setFilteredGames(data);
+      const response = await res.json();
+      
+      // Handle different response formats
+      let searchResults: GameItem[] = [];
+      if (response.games) {
+        searchResults = response.games;
+      } else if (Array.isArray(response)) {
+        searchResults = response;
+      } else if (response.data) {
+        searchResults = response.data;
+      }
+      
+      setFilteredGames(searchResults);
+      */
+      
       setActiveTab("games");
     } catch (err) {
       console.error("❌ Search failed:", err);
+      // Fallback to client-side filtering if API fails
+      const filtered = games.filter(game =>
+        game.gameName?.toLowerCase().includes(keyword.toLowerCase()) ||
+        game.category?.toLowerCase().includes(keyword.toLowerCase()) ||
+        game.description?.toLowerCase().includes(keyword.toLowerCase()) ||
+        game.platform?.toLowerCase().includes(keyword.toLowerCase())
+      );
+      setFilteredGames(filtered);
     } finally {
       setSearching(false);
     }
@@ -90,6 +141,13 @@ export default function DashboardPage() {
     setFilteredGames(filtered);
     setShowCategories(false);
     setActiveTab("games");
+    setKeyword(""); // Clear search when filtering by category
+  };
+
+  // === Clear search and show all games ===
+  const clearSearch = () => {
+    setKeyword("");
+    setFilteredGames(games);
   };
 
   // === Handle purchase click ===
@@ -128,7 +186,7 @@ export default function DashboardPage() {
       <nav className="flex justify-between items-center mb-8 bg-white/60 backdrop-blur-md rounded-xl shadow px-6 py-4 sticky top-4 z-30">
         <div className="flex items-center gap-2 text-indigo-700 font-bold text-2xl">
           <Gamepad2 size={28} />
-          <span>GameHub</span>
+          <span>HeavensPlay</span>
         </div>
 
         <div className="flex items-center gap-6">
@@ -136,6 +194,7 @@ export default function DashboardPage() {
             onClick={() => {
               setActiveTab("games");
               setFilteredGames(games);
+              setKeyword(""); // Clear search when switching to all games
             }}
             className={`font-medium transition ${
               activeTab === "games"
@@ -160,21 +219,25 @@ export default function DashboardPage() {
 
             {showCategories && (
               <div className="absolute top-10 left-0 bg-white shadow-lg rounded-lg border w-48 z-40">
-                {categories.length > 0 ? (
-                  categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => filterByCategory(cat)}
-                      className="block w-full text-left px-4 py-2 hover:bg-indigo-50 text-gray-700"
-                    >
-                      {cat}
-                    </button>
-                  ))
-                ) : (
-                  <p className="text-gray-400 text-sm p-3 text-center">
-                    No categories
-                  </p>
-                )}
+                <button
+                  onClick={() => {
+                    setFilteredGames(games);
+                    setShowCategories(false);
+                    setKeyword("");
+                  }}
+                  className="block w-full text-left px-4 py-2 hover:bg-indigo-50 text-gray-700 border-b"
+                >
+                  All Categories
+                </button>
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => filterByCategory(cat)}
+                    className="block w-full text-left px-4 py-2 hover:bg-indigo-50 text-gray-700"
+                  >
+                    {cat}
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -191,26 +254,63 @@ export default function DashboardPage() {
       </nav>
 
       {/* 🔍 Search Bar */}
-      <form
-        onSubmit={handleSearch}
-        className="flex items-center gap-3 mb-8 bg-white/70 rounded-lg px-4 py-3 shadow-sm border"
-      >
-        <input
-          type="text"
-          placeholder="Search game..."
-          value={keyword}
-          onChange={(e) => setKeyword(e.target.value)}
-          className="w-full border-none bg-transparent outline-none text-gray-700"
-        />
-        <button
-          type="submit"
-          disabled={searching}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+      <div className="mb-8 space-y-4">
+        <form
+          onSubmit={handleSearch}
+          className="flex items-center gap-3 bg-white/70 rounded-lg px-4 py-3 shadow-sm border"
         >
-          <Search size={18} />
-          {searching ? "Searching..." : "Search"}
-        </button>
-      </form>
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <input
+              type="text"
+              placeholder="Search by game name, category, platform, or description..."
+              value={keyword}
+              onChange={(e) => setKeyword(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border-none bg-transparent outline-none text-gray-700 placeholder-gray-400"
+            />
+            {keyword && (
+              <button
+                type="button"
+                onClick={clearSearch}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          <button
+            type="submit"
+            disabled={searching}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Search size={18} />
+            {searching ? "Searching..." : "Search"}
+          </button>
+        </form>
+
+        {/* Active Search Filter Display */}
+        {keyword && (
+          <div className="flex flex-wrap gap-3 items-center bg-white/50 rounded-lg px-4 py-3">
+            <span className="text-sm font-medium text-gray-700">Active search:</span>
+            <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm flex items-center gap-2">
+              "{keyword}"
+              <button onClick={clearSearch} className="hover:text-indigo-900">
+                <X size={14} />
+              </button>
+            </span>
+            <span className="text-sm text-gray-600">
+              {filteredGames.length} {filteredGames.length === 1 ? 'game' : 'games'} found
+            </span>
+            <button
+              onClick={clearSearch}
+              className="text-sm text-gray-600 hover:text-gray-800 font-medium flex items-center gap-1 ml-auto"
+            >
+              <X size={16} />
+              Clear search
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* 🎮 Game Grid */}
       <div
@@ -219,22 +319,34 @@ export default function DashboardPage() {
         }`}
       >
         {filteredGames.length === 0 ? (
-          <p className="text-gray-500 text-center col-span-full">
-            No games found.
-          </p>
+          <div className="text-center col-span-full py-12">
+            <Gamepad2 size={48} className="mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-500 text-lg mb-2">No games found</p>
+            <p className="text-gray-400 text-sm mb-4">
+              {keyword 
+                ? `No games match "${keyword}". Try a different search term.` 
+                : "No games available in this category"}
+            </p>
+            {keyword && (
+              <button
+                onClick={clearSearch}
+                className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+              >
+                Clear search
+              </button>
+            )}
+          </div>
         ) : (
           filteredGames.map((game) => {
-            const name =
-              game.gameName || (game as any).game_name || "Untitled Game";
-            const image =
-              game.imageUrl || (game as any).image_url || "/placeholder.png";
+            const name = game.gameName || "Untitled Game";
+            const image = game.imageUrl || "/placeholder.png";
             const platform = game.platform || "Unknown Platform";
 
             return (
               <div
                 key={game.id}
                 onClick={() => setSelectedGame(game)}
-                className="border rounded-xl shadow-sm p-4 hover:shadow-lg transition cursor-pointer bg-white/80 backdrop-blur-sm hover:-translate-y-1"
+                className="border rounded-xl shadow-sm p-4 hover:shadow-lg transition cursor-pointer bg-white/80 backdrop-blur-sm hover:-translate-y-1 transform duration-200"
               >
                 <img
                   src={image}
@@ -282,11 +394,7 @@ export default function DashboardPage() {
             </button>
 
             <img
-              src={
-                selectedGame.imageUrl ||
-                (selectedGame as any).image_url ||
-                "/placeholder.png"
-              }
+              src={selectedGame.imageUrl || "/placeholder.png"}
               alt={selectedGame.gameName}
               className="rounded-lg w-full h-64 object-cover mb-4"
               onError={(e) => {
@@ -295,9 +403,7 @@ export default function DashboardPage() {
             />
 
             <h2 className="text-2xl font-bold mb-2 text-gray-800">
-              {selectedGame.gameName ||
-                (selectedGame as any).game_name ||
-                "Untitled Game"}
+              {selectedGame.gameName || "Untitled Game"}
             </h2>
 
             <div className="space-y-2 mb-4">

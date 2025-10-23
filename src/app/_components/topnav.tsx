@@ -48,30 +48,12 @@ export default function TopNav() {
             className="rounded-sm"
           />
           <span className="text-2xl font-bold tracking-wide text-white hover:text-blue-400 transition">
-            GameVault
+            HeavensPlay
           </span>
         </a>
       </div>
 
-      {/* Center - Navigation Links (Centered) */}
-      <div className="flex gap-10 text-sm uppercase tracking-wide absolute left-1/2 transform -translate-x-1/2">
-        <a href="#" className="hover:text-white transition">
-          Home
-        </a>
-        <a href="#store" className="hover:text-white transition">
-          Store
-        </a>
-        <a href="#games" className="hover:text-white transition">
-          Games
-        </a>
-        <a href="#news" className="hover:text-white transition">
-          News
-        </a>
-        <a href="#about" className="hover:text-white transition">
-          About
-        </a>
-      </div>
-
+      
       {/* Right side - Auth */}
       <div className="flex items-center">
         <SignedIn>
